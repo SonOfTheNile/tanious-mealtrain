@@ -127,8 +127,15 @@
 
     // PASTE YOUR EMAILJS INFO HERE (from step 5)
     const EMAILJS_PUBLIC_KEY = "GP8eubCbTNFUovR-9";
-    const EMAILJS_SERVICE_ID = "service_875q8ch";
-    const EMAILJS_TEMPLATE_ID = "template_cmu2vvd";
+    const EMAILJS_SERVICE_ID = "default_service";
+    const EMAILJS_TEMPLATE_ID = "mealtrain_thanks";
+
+    if (EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY") {
+      emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+      console.log("EmailJS initialized with public key");
+    } else {
+      console.warn("EmailJS Public Key not set — thank-you emails disabled");
+    }
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -256,7 +263,6 @@
           barClass = 'bg-emerald-400 w-full';
         } else if (w.status === 'partial') {
           badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">${w.meals} funded<br>$${WEEKLY_GOAL - w.allocated} needed</span>`;
-          //badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">$${Math.round(w.allocated)} raised</span>`;
           barClass = 'bg-amber-400';
         } else {
           badge = `<span class="bg-zinc-700 px-4 py-1 rounded-2xl text-sm font-medium">Waiting for love</span>`;
@@ -311,15 +317,14 @@
       confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
 
       if (data.email && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY") {
-        try {
-          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-            name: data.name,
-            amount: data.amount,
-            message: data.message || "No message left — still means the world!"
-          });
-        } catch(e) {
-          console.warn("Unable to send email to ", data.email);
-        }
+          emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, data).then(
+            () => {
+              console.log('Sent!');
+            },
+            (err) => {
+              console.error(JSON.stringify(err));
+            },
+          );
       }
 
       closeModal();
