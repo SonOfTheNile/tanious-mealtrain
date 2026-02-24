@@ -262,7 +262,7 @@
           badge = `<span class="bg-emerald-500/20 text-emerald-400 px-4 py-1 rounded-2xl text-sm font-medium">✓ Fully Funded</span>`;
           barClass = 'bg-emerald-400 w-full';
         } else if (w.status === 'partial') {
-          badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">${w.meals} funded<br>$${WEEKLY_GOAL - w.allocated} needed</span>`;
+          badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">${w.meals} funded<br>$${WEEKLY_GOAL - w.allocated} to go</span>`;
           barClass = 'bg-amber-400';
         } else {
           badge = `<span class="bg-zinc-700 px-4 py-1 rounded-2xl text-sm font-medium">Waiting for love</span>`;
