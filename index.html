@@ -147,7 +147,13 @@
 
     function addContribution(data) {
       data.timestamp = Date.now();
-      contributionsRef.push(data);
+      contributionsRef.push(data)
+        .then(() => {
+          console.log('Gift pushed successfully!', data);  // debug
+        })
+        .catch(error => {
+          console.error('Push failed:', error);  // will show permission or other errors
+        });
     }
 
     function calculateTotalFunded() {
@@ -296,6 +302,7 @@
       };
 
       addContribution(data);
+      renderAll();  // force immediate re-render in case listener lags
       confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
 
       if (data.email && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY") {
