@@ -25,11 +25,11 @@
         <i class="fa-solid fa-baby text-2xl"></i>
         <span class="font-semibold tracking-widest">NEWBORN MODE ACTIVATED</span>
       </div>
-      <h1 class="text-6xl md:text-7xl font-bold tracking-tighter mb-4">Tanious Family<br>Meal Train 🍼</h1>
-      <p class="text-2xl text-zinc-400 max-w-md mx-auto">16 chef-made CookUnity meals per week while we soak in all the newborn snuggles</p>
+      <h1 class="text-6xl md:text-7xl font-bold tracking-tighter mb-4">Ezra Tanious' 🍼<br>Family Meal Train</h1>
+      <p class="text-2xl text-zinc-400 max-w-md mx-auto">16 chef-made CookUnity meals per week for mom and dad while we soak in all the newborn snuggles<br>(and change all the diapers)</p>
       <a href="https://www.cookunity.com/gift-cards" target="_blank" 
          class="mt-8 inline-flex items-center gap-3 bg-white text-zinc-900 px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-amber-400 transition">
-        <i class="fa-solid fa-gift"></i> Buy a Gift Card for Us
+        <i class="fa-solid fa-gift"></i> Buy a Gift Card for Us<br>ShadieAndKimTanious@gmail.com
       </a>
     </div>
 
@@ -139,9 +139,10 @@
     function loadData() {
       contributionsRef.on('value', (snapshot) => {
         contributions = [];
-        snapshot.forEach(child => contributions.push(child.val()));
+        snapshot.forEach(child => {
+          contributions.push(child.val());
+        });
         contributions.sort((a,b) => b.timestamp - a.timestamp);
-        console.log('New child loaded!', child);
         renderAll();
       });
     }
@@ -153,6 +154,10 @@
 
     function calculateTotalFunded() {
       return contributions.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+    }
+
+    function calculateNumberContributions() {
+      return contributions.length;
     }
 
     function generateWeeks() {
@@ -174,6 +179,7 @@
         let allocated = 0;
         let status = 'open';
         let progressPercent = 0;
+        let meals = 0;
 
         // ONLY allocate to FUTURE weeks (past + current are locked)
         if (isFuture && remainingFunds > 0) {
@@ -186,6 +192,7 @@
             remainingFunds = 0;
             status = 'partial';
           }
+          meals = Math.floor(allocated / MEAL_PRICE);
           progressPercent = Math.round((allocated / WEEKLY_GOAL) * 100);
         }
 
@@ -198,7 +205,8 @@
           isFuture,
           status,
           allocated,
-          progressPercent
+          progressPercent,
+          meals
         });
       }
       return weeks;
@@ -206,11 +214,13 @@
 
     function calculateStats(weeks) {
       const total = calculateTotalFunded();
+      const contributions = calculateNumberContributions();
       const funded = weeks.filter(w => w.status === 'funded').length;
       const partial = weeks.find(w => w.status === 'partial');
       const weeksCovered = funded + (partial ? partial.allocated / WEEKLY_GOAL : 0);
+      const daysCovered = Math.floor(weeksCovered - Math.floor(weeksCovered)) * 7;
       const totalMeals = Math.floor(total / MEAL_PRICE);
-      return { total: total.toFixed(0), weeksCovered: weeksCovered.toFixed(1), totalMeals };
+      return { total: contributions.toFixed(0), weeksCovered: Math.floor(weeksCovered).toFixed(0), daysCovered, totalMeals };
     }
 
     function renderAll() {
@@ -220,12 +230,12 @@
       // Stats
       document.getElementById('stats').innerHTML = `
         <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
-          <p class="text-amber-400 text-sm font-medium">TOTAL FUNDED</p>
-          <p class="text-6xl font-bold mt-2">$${stats.total}</p>
+          <p class="text-amber-400 text-sm font-medium">CONTRIBUTIONS</p>
+          <p class="text-6xl font-bold mt-2">${stats.total}</p>
         </div>
         <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
-          <p class="text-amber-400 text-sm font-medium">WEEKS COVERED</p>
-          <p class="text-6xl font-bold mt-2">${stats.weeksCovered}</p>
+          <p class="text-amber-400 text-sm font-medium">TIME COVERED</p>
+          <p class="text-6xl font-bold mt-2">${stats.weeksCovered}w ${stats.daysCovered}d</p>
         </div>
         <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
           <p class="text-amber-400 text-sm font-medium">MEALS FUNDED</p>
@@ -245,7 +255,8 @@
           badge = `<span class="bg-emerald-500/20 text-emerald-400 px-4 py-1 rounded-2xl text-sm font-medium">✓ Fully Funded</span>`;
           barClass = 'bg-emerald-400 w-full';
         } else if (w.status === 'partial') {
-          badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">Partial • $${Math.round(w.allocated)} raised</span>`;
+          badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">${w.meals} funded<br>$${WEEKLY_GOAL - w.allocated} needed</span>`;
+          //badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">$${Math.round(w.allocated)} raised</span>`;
           barClass = 'bg-amber-400';
         } else {
           badge = `<span class="bg-zinc-700 px-4 py-1 rounded-2xl text-sm font-medium">Waiting for love</span>`;
@@ -306,237 +317,9 @@
             amount: data.amount,
             message: data.message || "No message left — still means the world!"
           });
-        } catch(e) {}
-      }
-
-      closeModal();
-
-      const toast = document.createElement('div');
-      toast.className = "fixed bottom-28 right-8 bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-xl";
-      toast.textContent = "Thank you!! 🎉 Live on the board";
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
-    });
-
-    loadData();
-    console.log('Num Children: ', contributions.length);
-  });
-</script>
-
-<!-- <script>
-  // Make these functions global so onclick="openModal()" works
-  function openModal() {
-    document.getElementById('modal').classList.remove('hidden');
-    document.getElementById('gift-form').reset();
-  }
-
-  function closeModal() {
-    document.getElementById('modal').classList.add('hidden');
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
-    // ================== CONFIG ==================
-    const WEEKLY_GOAL = 184;
-    const START_DATE = new Date('2026-02-16');
-    const MEAL_PRICE = 11.50;
-    const TODAY = new Date(); // current date for "past" detection
-
-    // PASTE YOUR FIREBASE CONFIG HERE (from step 1)
-    const firebaseConfig = {
-      apiKey: "AIzaSyBloBRD91EW1-jU8pUmxcftKk1xCTTTw34",
-      authDomain: "ezra-tanious-mealtrain.firebaseapp.com",
-      databseURL: "https://console.firebase.google.com/project/ezra-tanious-mealtrain/database/ezra-tanious-mealtrain-default-rtdb/data/~2F",
-      projectId: "ezra-tanious-mealtrain",
-      storageBucket: "ezra-tanious-mealtrain.firebasestorage.app",
-      messagingSenderId: "747585011658",
-      appId: "1:747585011658:web:43a768395c1c1f96261933"
-    };
-
-    // PASTE YOUR EMAILJS INFO HERE (from step 5)
-    const EMAILJS_PUBLIC_KEY = "GP8eubCbTNFUovR-9";
-    const EMAILJS_SERVICE_ID = "service_875q8ch";
-    const EMAILJS_TEMPLATE_ID = "template_cmu2vvd";
-
-    // ================== FIREBASE INIT ==================
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const contributionsRef = db.ref('contributions');
-
-    let contributions = [];
-
-    function loadData() {
-      contributionsRef.on('value', (snapshot) => {
-        contributions = [];
-        snapshot.forEach(child => contributions.push(child.val()));
-        contributions.sort((a,b) => b.timestamp - a.timestamp);
-        renderAll();
-      });
-    }
-
-    function addContribution(data) {
-      data.timestamp = Date.now();
-      contributionsRef.push(data);
-    }
-
-    function calculateTotalFunded() {
-      return contributions.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-    }
-
-    function generateWeeks() {
-      const totalFunded = calculateTotalFunded();
-      const weeks = [];
-      let current = new Date(START_DATE);
-      let remainingFunds = totalFunded;
-
-      for (let i = 0; i < 12; i++) {
-        const weekStart = new Date(current);
-        current.setDate(current.getDate() + 6);
-        const weekEnd = new Date(current);
-        current.setDate(current.getDate() + 1);
-
-        const isPast = weekEnd < TODAY;
-        const isCurrent = !isPast && weekStart <= TODAY && weekEnd >= TODAY;
-
-        let allocated = 0;
-        let status = isPast ? 'past' : 'open';
-        let progressPercent = 0;
-
-        if (!isPast && remainingFunds > 0) {
-          if (remainingFunds >= WEEKLY_GOAL) {
-            allocated = WEEKLY_GOAL;
-            remainingFunds -= WEEKLY_GOAL;
-            status = 'funded';
-          } else {
-            allocated = remainingFunds;
-            remainingFunds = 0;
-            status = 'partial';
-          }
-          progressPercent = Math.round((allocated / WEEKLY_GOAL) * 100);
+        } catch(e) {
+          console.warn("Unable to send email to ", data.email);
         }
-
-        weeks.push({
-          week: i + 1,
-          startStr: weekStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          endStr: weekEnd.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          isPast,
-          isCurrent,
-          status,
-          allocated,
-          progressPercent
-        });
-      }
-      return weeks;
-    }
-
-    function calculateStats(weeks) {
-      const total = calculateTotalFunded();
-      const fundedWeeks = weeks.filter(w => w.status === 'funded').length;
-      const partial = weeks.find(w => w.status === 'partial');
-      const weeksCovered = fundedWeeks + (partial ? partial.allocated / WEEKLY_GOAL : 0);
-      const totalMeals = Math.floor(total / MEAL_PRICE);
-      return { total: total.toFixed(0), weeksCovered: weeksCovered.toFixed(1), totalMeals };
-    }
-
-    function renderAll() {
-      const weeks = generateWeeks();
-      const stats = calculateStats(weeks);
-
-      // Stats cards
-      document.getElementById('stats').innerHTML = `
-        <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
-          <p class="text-amber-400 text-sm font-medium">TOTAL FUNDED</p>
-          <p class="text-6xl font-bold mt-2">$${stats.total}</p>
-        </div>
-        <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
-          <p class="text-amber-400 text-sm font-medium">WEEKS COVERED</p>
-          <p class="text-6xl font-bold mt-2">${stats.weeksCovered}</p>
-        </div>
-        <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
-          <p class="text-amber-400 text-sm font-medium">MEALS FUNDED</p>
-          <p class="text-6xl font-bold mt-2">${stats.totalMeals}</p>
-        </div>
-      `;
-
-      // Weeks grid
-      const weeksHTML = weeks.map(w => {
-        let badge = '';
-        let barClass = 'bg-zinc-700 w-0';
-        let extraClass = w.isPast ? 'opacity-70' : '';
-
-        if (w.isPast) {
-          badge = w.allocated > 0 
-            ? `<span class="bg-emerald-500/20 text-emerald-400 px-4 py-1 rounded-2xl text-sm font-medium">Completed ✅</span>`
-            : `<span class="bg-rose-500/20 text-rose-400 px-4 py-1 rounded-2xl text-sm font-medium">Missed ⏳</span>`;
-        } else if (w.isCurrent) {
-          badge = `<span class="bg-blue-500/20 text-blue-400 px-4 py-1 rounded-2xl text-sm font-medium">Current 🔥</span>`;
-        } else if (w.status === 'funded') {
-          badge = `<span class="bg-emerald-500/20 text-emerald-400 px-4 py-1 rounded-2xl text-sm font-medium">✓ Fully Funded</span>`;
-          barClass = 'bg-emerald-400 w-full';
-        } else if (w.status === 'partial') {
-          badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">Partial • $${Math.round(w.allocated)} raised</span>`;
-          barClass = 'bg-amber-400';
-        } else {
-          badge = `<span class="bg-zinc-700 px-4 py-1 rounded-2xl text-sm font-medium">Waiting for love</span>`;
-        }
-
-        return `
-          <div class="bg-zinc-900 rounded-3xl p-8 card-hover ${extraClass}">
-            <div class="flex justify-between items-start mb-6">
-              <div>
-                <p class="text-xl font-semibold">Week ${w.week}${w.isCurrent ? ' (current)' : ''}${w.isPast ? ' (past)' : ''}</p>
-                <p class="text-zinc-400">${w.startStr} — ${w.endStr}</p>
-              </div>
-              ${badge}
-            </div>
-            <div class="h-3 bg-zinc-800 rounded-3xl overflow-hidden">
-              <div class="h-full transition-all duration-500 ${barClass}" style="width: ${w.progressPercent}%"></div>
-            </div>
-            <p class="text-center text-sm text-zinc-500 mt-3">16 chef meals • $${WEEKLY_GOAL}</p>
-          </div>
-        `;
-      }).join('');
-      document.getElementById('weeks-grid').innerHTML = weeksHTML;
-
-      // Gifts list
-      const giftsHTML = contributions.slice(0, 8).map(c => `
-        <div class="bg-zinc-900 rounded-3xl p-6 flex gap-6 card-hover">
-          <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">🎁</div>
-          <div class="flex-1">
-            <div class="flex justify-between">
-              <p class="font-semibold">${c.name}</p>
-              <p class="font-mono text-amber-400">+$${parseFloat(c.amount).toFixed(0)}</p>
-            </div>
-            ${c.message ? `<p class="text-zinc-400 mt-2 italic">"${c.message}"</p>` : ''}
-            <p class="text-xs text-zinc-500 mt-3">${new Date(c.timestamp).toLocaleDateString()}</p>
-          </div>
-        </div>
-      `).join('');
-      document.getElementById('gifts-list').innerHTML = giftsHTML || '<p class="text-zinc-500 text-center py-12">Be the first to gift a meal ❤️</p>';
-    }
-
-    // Form submission
-    document.getElementById('gift-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const data = {
-        name: document.getElementById('name').value,
-        amount: parseFloat(document.getElementById('amount').value),
-        message: document.getElementById('message').value,
-        email: document.getElementById('email').value
-      };
-
-      addContribution(data);
-
-      confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
-
-      if (data.email && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY") {
-        try {
-          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-            name: data.name,
-            amount: data.amount,
-            message: data.message || "No message left — still means the world!"
-          });
-        } catch(e) { console.log(e); }
       }
 
       closeModal();
@@ -551,206 +334,5 @@
     loadData();
   });
 </script>
- -->
-<!--   <script>
-    // ================== CONFIG ==================
-    const WEEKLY_GOAL = 184;           // change this anytime
-    const START_DATE = new Date('2026-03-03'); // first Monday you want to start counting
-    const MEAL_PRICE = 11.50;
-
-    // PASTE YOUR FIREBASE CONFIG HERE (from step 1)
-    const firebaseConfig = {
-      apiKey: "AIzaSyBloBRD91EW1-jU8pUmxcftKk1xCTTTw34",
-      authDomain: "ezra-tanious-mealtrain.firebaseapp.com",
-      databseURL: "https://console.firebase.google.com/project/ezra-tanious-mealtrain/database/ezra-tanious-mealtrain-default-rtdb/data/~2F",
-      projectId: "ezra-tanious-mealtrain",
-      storageBucket: "ezra-tanious-mealtrain.firebasestorage.app",
-      messagingSenderId: "747585011658",
-      appId: "1:747585011658:web:43a768395c1c1f96261933"
-    };
-
-    // PASTE YOUR EMAILJS INFO HERE (from step 5)
-    const EMAILJS_PUBLIC_KEY = "GP8eubCbTNFUovR-9";
-    const EMAILJS_SERVICE_ID = "service_875q8ch";
-    const EMAILJS_TEMPLATE_ID = "template_cmu2vvd";
-
-    // ================== FIREBASE INIT ==================
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const contributionsRef = db.ref('contributions');
-
-    let contributions = [];
-
-    function loadData() {
-      contributionsRef.on('value', (snapshot) => {
-        contributions = [];
-        snapshot.forEach(child => {
-          contributions.push(child.val());
-        });
-        contributions.sort((a,b) => b.timestamp - a.timestamp);
-        renderAll();
-      });
-    }
-
-    function addContribution(data) {
-      data.timestamp = Date.now();
-      contributionsRef.push(data);
-    }
-
-    // ================== NEW FIXED CALCULATIONS ==================
-    function calculateStats() {
-      const total = contributions.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-      const fullWeeks = Math.floor(total / WEEKLY_GOAL);
-      const remainder = total % WEEKLY_GOAL;
-      const weeksCovered = (fullWeeks + (remainder / WEEKLY_GOAL)).toFixed(1);
-      const totalMeals = Math.floor(total / MEAL_PRICE);
-      return { total: total.toFixed(0), weeksCovered, totalMeals, fullWeeks, remainder };
-    }
-
-    function generateWeeks() {
-      const stats = calculateStats();
-      const weeks = [];
-      let current = new Date(START_DATE);
-
-      for (let i = 0; i < 12; i++) {
-        const startStr = current.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
-        current.setDate(current.getDate() + 6);
-        const endStr = current.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
-        current.setDate(current.getDate() + 1);
-
-        let status = 'open';
-        let progressPercent = 0;
-
-        if (i < stats.fullWeeks) {
-          status = 'funded';
-          progressPercent = 100;
-        } else if (i === stats.fullWeeks && stats.remainder > 0) {
-          status = 'partial';
-          progressPercent = Math.round((stats.remainder / WEEKLY_GOAL) * 100);
-        }
-
-        weeks.push({ week: i+1, startStr, endStr, status, progressPercent });
-      }
-      return weeks;
-    }
-
-    // ================== RENDER ==================
-    function renderAll() {
-      const stats = calculateStats();
-
-      // Stats
-      document.getElementById('stats').innerHTML = `
-        <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
-          <p class="text-amber-400 text-sm font-medium">TOTAL FUNDED</p>
-          <p class="text-6xl font-bold mt-2">$${stats.total}</p>
-        </div>
-        <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
-          <p class="text-amber-400 text-sm font-medium">WEEKS COVERED</p>
-          <p class="text-6xl font-bold mt-2">${stats.weeksCovered}</p>
-        </div>
-        <div class="bg-zinc-900 rounded-3xl p-8 text-center card-hover">
-          <p class="text-amber-400 text-sm font-medium">MEALS FUNDED</p>
-          <p class="text-6xl font-bold mt-2">${stats.totalMeals}</p>
-        </div>
-      `;
-
-      // Weeks grid - NOW FIXED
-      const weeksHTML = generateWeeks().map(w => {
-        let badge = '';
-        if (w.status === 'funded') {
-          badge = `<span class="bg-emerald-500/20 text-emerald-400 px-4 py-1 rounded-2xl text-sm font-medium">✓ Fully Funded</span>`;
-        } else if (w.status === 'partial') {
-          badge = `<span class="bg-amber-400/20 text-amber-400 px-4 py-1 rounded-2xl text-sm font-medium">Partial • $${stats.remainder} raised</span>`;
-        } else {
-          badge = `<span class="bg-zinc-700 px-4 py-1 rounded-2xl text-sm font-medium">Waiting for love</span>`;
-        }
-
-        return `
-          <div class="bg-zinc-900 rounded-3xl p-8 card-hover">
-            <div class="flex justify-between items-start mb-6">
-              <div>
-                <p class="text-xl font-semibold">Week ${w.week}</p>
-                <p class="text-zinc-400">${w.startStr} — ${w.endStr}</p>
-              </div>
-              ${badge}
-            </div>
-            <div class="h-3 bg-zinc-800 rounded-3xl overflow-hidden">
-              <div class="h-full transition-all duration-500 ${
-                w.status === 'funded' ? 'bg-emerald-400 w-full' :
-                w.status === 'partial' ? 'bg-amber-400' : 'bg-zinc-700 w-0'
-              }" style="width: ${w.progressPercent}%"></div>
-            </div>
-            <p class="text-center text-sm text-zinc-500 mt-3">16 chef meals • $${WEEKLY_GOAL}</p>
-          </div>
-        `;
-      }).join('');
-      document.getElementById('weeks-grid').innerHTML = weeksHTML;
-
-      // Gifts list
-      const giftsHTML = contributions.slice(0, 8).map(c => `
-        <div class="bg-zinc-900 rounded-3xl p-6 flex gap-6 card-hover">
-          <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
-            🎁
-          </div>
-          <div class="flex-1">
-            <div class="flex justify-between">
-              <p class="font-semibold">${c.name}</p>
-              <p class="font-mono text-amber-400">+$${parseFloat(c.amount).toFixed(0)}</p>
-            </div>
-            ${c.message ? `<p class="text-zinc-400 mt-2 italic">"${c.message}"</p>` : ''}
-            <p class="text-xs text-zinc-500 mt-3">${new Date(c.timestamp).toLocaleDateString()}</p>
-          </div>
-        </div>
-      `).join('');
-      document.getElementById('gifts-list').innerHTML = giftsHTML || '<p class="text-zinc-500 text-center py-12">Be the first to gift a meal ❤️</p>';
-    }
-
-    // ================== MODAL & FORM ==================
-    function openModal() {
-      document.getElementById('modal').classList.remove('hidden');
-      document.getElementById('gift-form').reset();
-    }
-    function closeModal() {
-      document.getElementById('modal').classList.add('hidden');
-    }
-
-    document.getElementById('gift-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const data = {
-        name: document.getElementById('name').value,
-        amount: parseFloat(document.getElementById('amount').value),
-        message: document.getElementById('message').value,
-        email: document.getElementById('email').value
-      };
-
-      addContribution(data);
-
-      // Confetti
-      confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
-
-      // Thank you email
-      if (data.email && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY") {
-        try {
-          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-            name: data.name,
-            amount: data.amount,
-            message: data.message || "No message left — still means the world!"
-          });
-        } catch(e) { console.log("Email sent anyway"); }
-      }
-
-      closeModal();
-      // small toast
-      const toast = document.createElement('div');
-      toast.className = "fixed bottom-28 right-8 bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-xl";
-      toast.textContent = "Thank you!! 🎉 Live on the board";
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
-    });
-
-    // Tailwind script already loaded
-    loadData();
-  </script> -->
 </body>
 </html>
