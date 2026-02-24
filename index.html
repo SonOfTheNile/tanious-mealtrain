@@ -141,6 +141,7 @@
         contributions = [];
         snapshot.forEach(child => contributions.push(child.val()));
         contributions.sort((a,b) => b.timestamp - a.timestamp);
+        console.log('New child loaded!', child);
         renderAll();
       });
     }
