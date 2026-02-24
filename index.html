@@ -136,14 +136,25 @@
 
     let contributions = [];
 
-    function loadData() {
-      contributionsRef.on('value', (snapshot) => {
-        contributions = [];
-        snapshot.forEach(child => contributions.push(child.val()));
-        contributions.sort((a,b) => b.timestamp - a.timestamp);
-        renderAll();
-      });
-    }
+function loadData() {
+  contributionsRef.on('value', (snapshot) => {
+    console.log('Snapshot received. Has children?', snapshot.hasChildren());
+    console.log('Number of children:', snapshot.numChildren());
+    
+    contributions = [];
+    snapshot.forEach(child => {
+      const val = child.val();
+      console.log('Child key:', child.key, 'Value:', val);  // log each one
+      if (val) contributions.push(val);
+    });
+    
+    console.log('Final contributions array:', contributions);
+    contributions.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+    console.log('After sort:', contributions);
+    
+    renderAll();
+  });
+}
 
     function addContribution(data) {
       data.timestamp = Date.now();
