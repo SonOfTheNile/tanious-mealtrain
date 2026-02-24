@@ -34,8 +34,8 @@
     </div>
 
     <!-- STATS -->
-    <div class="grid grid-cols-3 gap-6 mb-16" id="stats">
-      <!-- JS fills this -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16" id="stats">
+      <!-- cards stay the same -->
     </div>
 
     <!-- WEEKS -->
@@ -225,7 +225,7 @@
       const funded = weeks.filter(w => w.status === 'funded').length;
       const partial = weeks.find(w => w.status === 'partial');
       const weeksCovered = funded + (partial ? partial.allocated / WEEKLY_GOAL : 0);
-      const daysCovered = Math.floor(weeksCovered - Math.floor(weeksCovered)) * 7;
+      const daysCovered = Math.floor((weeksCovered - Math.floor(weeksCovered)) * 7);
       const totalMeals = Math.floor(total / MEAL_PRICE);
       return { total: contributions.toFixed(0), weeksCovered: Math.floor(weeksCovered).toFixed(0), daysCovered, totalMeals };
     }
